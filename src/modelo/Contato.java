@@ -1,18 +1,28 @@
 package modelo;
 
 public class Contato {
+    private int id;
     private String nome;
     private String cargo;
     private String email;
     private String telefone;
     private String celular;
 
-    public Contato(String cargo, String celular, String email, String nome, String telefone) {
+    public Contato(int id, String cargo, String celular, String email, String nome, String telefone) {
+        this.id = id;
         this.cargo = cargo;
         this.celular = celular;
         this.email = email;
         this.nome = nome;
         this.telefone = telefone;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getCargo() {

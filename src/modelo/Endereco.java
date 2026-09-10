@@ -1,6 +1,7 @@
 package modelo;
 
 public class Endereco {
+    private int id;
     private String logradouro;
     private int numero;
     private String complemento;
@@ -10,7 +11,8 @@ public class Endereco {
     private String cep;
     private String pais;
 
-    public Endereco(String bairro, String cep, String cidade, String complemento, String estado, String logradouro, int numero, String pais) {
+    public Endereco(int id,String bairro, String cep, String cidade, String complemento, String estado, String logradouro, int numero, String pais) {
+        this.id = id;
         this.bairro = bairro;
         this.cep = cep;
         this.cidade = cidade;
@@ -19,6 +21,14 @@ public class Endereco {
         this.logradouro = logradouro;
         this.numero = numero;
         this.pais = pais;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getBairro() {
