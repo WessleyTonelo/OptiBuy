@@ -9,12 +9,13 @@ import java.util.List;
 
 public class ContatoRepository {
 
-    // CREATE - Salva um novo contato no banco
-    public void salvar(Contato contato) {
+    // CREATE - Salva um novo contato no banco e retorna o ID gerado
+    public int salvar(Contato contato) {
         String sql = "INSERT INTO contato (nome, cargo, email, telefone, celular) VALUES (?, ?, ?, ?, ?)";
+        int idGerado = 0;
 
         try (Connection con = ConexaoDB.conectar();
-             PreparedStatement stmt = con.prepareStatement(sql)) {
+             PreparedStatement stmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, contato.getNome());
             stmt.setString(2, contato.getCargo());
@@ -23,12 +24,21 @@ public class ContatoRepository {
             stmt.setString(5, contato.getCelular());
 
             stmt.executeUpdate();
-            System.out.println("Contato salvo com sucesso!");
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                idGerado = rs.getInt(1);
+            }
+
+            System.out.println("Contato salvo com sucesso! ID: " + idGerado);
 
         } catch (SQLException e) {
             System.out.println("Erro ao salvar contato: " + e.getMessage());
         }
+
+        return idGerado;
     }
+
     // READ - Lista todos os contatos
     public List<Contato> listarTodos() {
         List<Contato> contatos = new ArrayList<>();
@@ -56,6 +66,7 @@ public class ContatoRepository {
 
         return contatos;
     }
+
     // READ - Busca um contato específico pelo ID
     public Contato buscarPorId(int id) {
         String sql = "SELECT * FROM contato WHERE id = ?";
@@ -68,7 +79,7 @@ public class ContatoRepository {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                Contato c = new Contato(
+                contato = new Contato(
                         rs.getInt("id"),
                         rs.getString("cargo"),
                         rs.getString("celular"),
@@ -85,21 +96,6 @@ public class ContatoRepository {
         return contato;
     }
 
-    // DELETE - Remove um contato pelo ID
-    public void deletar(int id) {
-        String sql = "DELETE FROM contato WHERE id = ?";
-
-        try (Connection con = ConexaoDB.conectar();
-             PreparedStatement stmt = con.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            stmt.executeUpdate();
-            System.out.println("Contato removido com sucesso!");
-
-        } catch (SQLException e) {
-            System.out.println("Erro ao deletar contato: " + e.getMessage());
-        }
-    }
     // UPDATE - Atualiza um contato existente
     public void atualizar(Contato contato, int id) {
         String sql = "UPDATE contato SET nome = ?, cargo = ?, email = ?, telefone = ?, celular = ? WHERE id = ?";
@@ -119,6 +115,22 @@ public class ContatoRepository {
 
         } catch (SQLException e) {
             System.out.println("Erro ao atualizar contato: " + e.getMessage());
+        }
+    }
+
+    // DELETE - Remove um contato pelo ID
+    public void deletar(int id) {
+        String sql = "DELETE FROM contato WHERE id = ?";
+
+        try (Connection con = ConexaoDB.conectar();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+            System.out.println("Contato removido com sucesso!");
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao deletar contato: " + e.getMessage());
         }
     }
 }

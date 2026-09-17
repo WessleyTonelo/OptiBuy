@@ -9,12 +9,13 @@ import java.util.List;
 
 public class EnderecoRepository {
 
-    // CREATE - Salva um novo endereço no banco
-    public void salvar(Endereco endereco) {
+    // CREATE - Salva um novo endereço no banco e retorna o ID gerado
+    public int salvar(Endereco endereco) {
         String sql = "INSERT INTO endereco (logradouro, numero, complemento, bairro, cidade, estado, cep, pais) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        int idGerado = 0;
 
         try (Connection con = ConexaoDB.conectar();
-             PreparedStatement stmt = con.prepareStatement(sql)) {
+             PreparedStatement stmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, endereco.getLogradouro());
             stmt.setInt(2, endereco.getNumero());
@@ -26,11 +27,19 @@ public class EnderecoRepository {
             stmt.setString(8, endereco.getPais());
 
             stmt.executeUpdate();
-            System.out.println("Endereço salvo com sucesso!");
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                idGerado = rs.getInt(1);
+            }
+
+            System.out.println("Endereço salvo com sucesso! ID: " + idGerado);
 
         } catch (SQLException e) {
             System.out.println("Erro ao salvar endereço: " + e.getMessage());
         }
+
+        return idGerado;
     }
 
     // READ - Lista todos os endereços
