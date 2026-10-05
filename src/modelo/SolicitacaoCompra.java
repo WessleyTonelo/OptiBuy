@@ -9,13 +9,13 @@ public class SolicitacaoCompra {
     private String prioridade;
     private String dataSolicitacao;
     private String status;
-    private List<Produto> produtos;
+    private List<ItemSolicitacao> itens;
 
-    public SolicitacaoCompra(String dataSolicitacao, int id, String prioridade, List<Produto> produtos, String setor, String status, Solicitante solicitante) {
+    public SolicitacaoCompra(String dataSolicitacao, int id, String prioridade, List<ItemSolicitacao> itens, String setor, String status, Solicitante solicitante) {
         this.dataSolicitacao = dataSolicitacao;
         this.id = id;
         this.prioridade = prioridade;
-        this.produtos = produtos;
+        this.itens = itens;
         this.setor = setor;
         this.status = status;
         this.solicitante = solicitante;
@@ -45,12 +45,12 @@ public class SolicitacaoCompra {
         this.prioridade = prioridade;
     }
 
-    public List<Produto> getProdutos() {
-        return produtos;
+    public List<ItemSolicitacao> getItens() {
+        return itens;
     }
 
-    public void setProdutos(List<Produto> produtos) {
-        this.produtos = produtos;
+    public void setItens(List<ItemSolicitacao> itens) {
+        this.itens = itens;
     }
 
     public String getSetor() {
