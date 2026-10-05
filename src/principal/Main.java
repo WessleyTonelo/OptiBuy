@@ -16,10 +16,11 @@ public class Main {
         FornecedorRepository fornecedorRepo = new FornecedorRepository();
         SolicitacaoCompraRepository solicitacaoRepo = new SolicitacaoCompraRepository();
         CotacaoRepository cotacaoRepo = new CotacaoRepository();
+        PedidoCompraRepository pedidoRepo = new PedidoCompraRepository();
 
         System.out.println("===== PREPARANDO DADOS =====");
 
-        // Contato + Solicitante
+        // Contato + Solicitante (comprador)
         Contato contato = new Contato(0, "Comprador", "49911112222", "ana@optibuy.com", "Ana Requisitante", "4933331111");
         int idContato = contatoRepo.salvar(contato);
         Contato contatoSalvo = contatoRepo.buscarPorId(idContato);
@@ -40,7 +41,7 @@ public class Main {
         int idSolicitacao = solicitacaoRepo.salvar(solicitacao);
         SolicitacaoCompra solicitacaoSalva = solicitacaoRepo.buscarPorId(idSolicitacao);
 
-        // Endereco + Contato + Fornecedor (dois fornecedores pra comparar preços)
+        // Endereco + Contato + Fornecedor
         Endereco endereco1 = new Endereco(0, "Centro", "89800-000", "Chapeco", "", "SC", "Rua A", 100, "Brasil");
         int idEndereco1 = enderecoRepo.salvar(endereco1);
         Endereco enderecoSalvo1 = enderecoRepo.buscarPorId(idEndereco1);
@@ -53,27 +54,48 @@ public class Main {
         fornecedorRepo.salvar(fornecedor1);
         Fornecedor fornecedor1Salvo = fornecedorRepo.listarTodos().get(fornecedorRepo.listarTodos().size() - 1);
 
-        System.out.println("\n===== 1. SALVAR COTACAO =====");
+        // Cotacao
         List<OrcamentoFornecedor> orcamentos = new ArrayList<>();
         orcamentos.add(new OrcamentoFornecedor(fornecedor1Salvo, 0, 5, "Preco a vista", 0.45, parafusoSalvo));
-
-        Cotacao cotacao = new Cotacao("2026-10-04", "2026-10-10", 0, "Cotacao urgente", solicitacaoSalva, orcamentos, "Aberta");
+        Cotacao cotacao = new Cotacao("2026-10-04", "2026-10-10", 0, "Cotacao urgente", solicitacaoSalva, orcamentos, "Fechada");
         int idCotacao = cotacaoRepo.salvar(cotacao);
+        Cotacao cotacaoSalva = cotacaoRepo.buscarPorId(idCotacao);
+
+        System.out.println("\n===== 1. SALVAR PEDIDO DE COMPRA =====");
+        PedidoCompra pedido = new PedidoCompra(
+                solicitanteSalvo,
+                cotacaoSalva,
+                "",
+                "2026-10-04",
+                "2026-10-15",
+                0,
+                fornecedor1Salvo,
+                1001,
+                "Pedido urgente, priorizar producao",
+                "Enviado",
+                15.00,
+                45.00
+        );
+        int idPedido = pedidoRepo.salvar(pedido);
 
         System.out.println("\n===== 2. BUSCAR POR ID =====");
-        Cotacao encontrada = cotacaoRepo.buscarPorId(idCotacao);
-        System.out.println("Solicitacao relacionada: " + encontrada.getSolicitacaoDeCompra().getId());
-        System.out.println("Orcamentos recebidos:");
-        for (OrcamentoFornecedor orc : encontrada.getOrcamentoDoFornecedor()) {
-            System.out.println(" - " + orc.getFornecedor().getNome() + " ofertou R$ " + orc.getPrecoOfertado() + " para " + orc.getProduto().getNome());
-        }
+        PedidoCompra encontrado = pedidoRepo.buscarPorId(idPedido);
+        System.out.println("Pedido nº " + encontrado.getNumeroPedido() + " - Fornecedor: " + encontrado.getFornecedor().getNome() + " - Total: R$ " + encontrado.getValorTotalPedido());
 
-        System.out.println("\n===== 3. LISTAR TODOS =====");
-        System.out.println("Total de cotações no banco: " + cotacaoRepo.listarTodos().size());
+        System.out.println("\n===== 3. ATUALIZAR =====");
+        encontrado.setStatus("Entregue");
+        encontrado.setDataDaEntrega("2026-10-12");
+        pedidoRepo.atualizar(encontrado, idPedido);
 
-        System.out.println("\n===== 4. DELETAR =====");
-        cotacaoRepo.deletar(idCotacao);
-        Cotacao deveSerNulo = cotacaoRepo.buscarPorId(idCotacao);
-        System.out.println(deveSerNulo == null ? "Confirmado: cotação removida." : "ERRO: ainda existe!");
+        PedidoCompra atualizado = pedidoRepo.buscarPorId(idPedido);
+        System.out.println("Depois de atualizar: Status=" + atualizado.getStatus() + " - Data entrega=" + atualizado.getDataDaEntrega());
+
+        System.out.println("\n===== 4. LISTAR TODOS =====");
+        System.out.println("Total de pedidos no banco: " + pedidoRepo.listarTodos().size());
+
+        System.out.println("\n===== 5. DELETAR =====");
+        pedidoRepo.deletar(idPedido);
+        PedidoCompra deveSerNulo = pedidoRepo.buscarPorId(idPedido);
+        System.out.println(deveSerNulo == null ? "Confirmado: pedido removido." : "ERRO: ainda existe!");
     }
 }
