@@ -1,18 +1,28 @@
 package modelo;
 
 public class ItemRecebimento {
+    private int id;
     private Produto produto;
     private int quantidadeEsperada;
     private int quantidadeEntregue;
     private boolean divergencia;
     private String obs;
 
-    public ItemRecebimento(boolean divergencia, String obs, Produto produto, int quantidadeEntregue, int quantidadeEsperada) {
+    public ItemRecebimento(boolean divergencia, int id, String obs, Produto produto, int quantidadeEntregue, int quantidadeEsperada) {
         this.divergencia = divergencia;
+        this.id = id;
         this.obs = obs;
         this.produto = produto;
         this.quantidadeEntregue = quantidadeEntregue;
         this.quantidadeEsperada = quantidadeEsperada;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public boolean isDivergencia() {

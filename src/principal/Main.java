@@ -17,10 +17,11 @@ public class Main {
         SolicitacaoCompraRepository solicitacaoRepo = new SolicitacaoCompraRepository();
         CotacaoRepository cotacaoRepo = new CotacaoRepository();
         PedidoCompraRepository pedidoRepo = new PedidoCompraRepository();
+        RecebimentoRepository recebimentoRepo = new RecebimentoRepository();
 
-        System.out.println("===== PREPARANDO DADOS =====");
+        System.out.println("===== PREPARANDO DADOS (fluxo completo) =====");
 
-        // Contato + Solicitante (comprador)
+        // Contato + Solicitante
         Contato contato = new Contato(0, "Comprador", "49911112222", "ana@optibuy.com", "Ana Requisitante", "4933331111");
         int idContato = contatoRepo.salvar(contato);
         Contato contatoSalvo = contatoRepo.buscarPorId(idContato);
@@ -35,9 +36,9 @@ public class Main {
         Produto parafusoSalvo = produtoRepo.listarTodos().get(produtoRepo.listarTodos().size() - 1);
 
         // SolicitacaoCompra
-        List<ItemSolicitacao> itens = new ArrayList<>();
-        itens.add(new ItemSolicitacao(parafusoSalvo, 100));
-        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-10-04", 0, "Alta", itens, "Producao", "Cotado", solicitanteSalvo);
+        List<ItemSolicitacao> itensSolicitacao = new ArrayList<>();
+        itensSolicitacao.add(new ItemSolicitacao(parafusoSalvo, 100));
+        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-10-04", 0, "Alta", itensSolicitacao, "Producao", "Cotado", solicitanteSalvo);
         int idSolicitacao = solicitacaoRepo.salvar(solicitacao);
         SolicitacaoCompra solicitacaoSalva = solicitacaoRepo.buscarPorId(idSolicitacao);
 
@@ -61,41 +62,41 @@ public class Main {
         int idCotacao = cotacaoRepo.salvar(cotacao);
         Cotacao cotacaoSalva = cotacaoRepo.buscarPorId(idCotacao);
 
-        System.out.println("\n===== 1. SALVAR PEDIDO DE COMPRA =====");
+        // PedidoCompra
         PedidoCompra pedido = new PedidoCompra(
-                solicitanteSalvo,
-                cotacaoSalva,
-                "",
-                "2026-10-04",
-                "2026-10-15",
-                0,
-                fornecedor1Salvo,
-                1001,
-                "Pedido urgente, priorizar producao",
-                "Enviado",
-                15.00,
-                45.00
+                solicitanteSalvo, cotacaoSalva, "", "2026-10-04", "2026-10-15",
+                0, fornecedor1Salvo, 1001, "Pedido urgente", "Enviado", 15.00, 45.00
         );
         int idPedido = pedidoRepo.salvar(pedido);
+        PedidoCompra pedidoSalvo = pedidoRepo.buscarPorId(idPedido);
+
+        System.out.println("\n===== 1. SALVAR RECEBIMENTO =====");
+        List<ItemRecebimento> itensRecebimento = new ArrayList<>();
+        // Entregou 95 de 100 pedidos -> divergência!
+        itensRecebimento.add(new ItemRecebimento(true, 0, "Faltaram 5 unidades na caixa", parafusoSalvo, 95, 100));
+
+        Recebimento recebimento = new Recebimento(
+                "2026-10-13", true, 0, pedidoSalvo, itensRecebimento, "Ana Requisitante", "Parcial"
+        );
+        int idRecebimento = recebimentoRepo.salvar(recebimento);
 
         System.out.println("\n===== 2. BUSCAR POR ID =====");
-        PedidoCompra encontrado = pedidoRepo.buscarPorId(idPedido);
-        System.out.println("Pedido nº " + encontrado.getNumeroPedido() + " - Fornecedor: " + encontrado.getFornecedor().getNome() + " - Total: R$ " + encontrado.getValorTotalPedido());
+        Recebimento encontrado = recebimentoRepo.buscarPorId(idRecebimento);
+        System.out.println("Pedido relacionado: " + encontrado.getPedidoCompra().getNumeroPedido());
+        System.out.println("Divergência geral: " + encontrado.isDivergenciaEncontrada());
+        System.out.println("Itens recebidos:");
+        for (ItemRecebimento item : encontrado.getItensrecebidos()) {
+            System.out.println(" - " + item.getProduto().getNome() + " | Esperado: " + item.getQuantidadeEsperada() + " | Entregue: " + item.getQuantidadeEntregue() + " | Divergência: " + item.isDivergencia() + " | Obs: " + item.getObs());
+        }
 
-        System.out.println("\n===== 3. ATUALIZAR =====");
-        encontrado.setStatus("Entregue");
-        encontrado.setDataDaEntrega("2026-10-12");
-        pedidoRepo.atualizar(encontrado, idPedido);
+        System.out.println("\n===== 3. LISTAR TODOS =====");
+        System.out.println("Total de recebimentos no banco: " + recebimentoRepo.listarTodos().size());
 
-        PedidoCompra atualizado = pedidoRepo.buscarPorId(idPedido);
-        System.out.println("Depois de atualizar: Status=" + atualizado.getStatus() + " - Data entrega=" + atualizado.getDataDaEntrega());
+        System.out.println("\n===== 4. DELETAR =====");
+        recebimentoRepo.deletar(idRecebimento);
+        Recebimento deveSerNulo = recebimentoRepo.buscarPorId(idRecebimento);
+        System.out.println(deveSerNulo == null ? "Confirmado: recebimento removido." : "ERRO: ainda existe!");
 
-        System.out.println("\n===== 4. LISTAR TODOS =====");
-        System.out.println("Total de pedidos no banco: " + pedidoRepo.listarTodos().size());
-
-        System.out.println("\n===== 5. DELETAR =====");
-        pedidoRepo.deletar(idPedido);
-        PedidoCompra deveSerNulo = pedidoRepo.buscarPorId(idPedido);
-        System.out.println(deveSerNulo == null ? "Confirmado: pedido removido." : "ERRO: ainda existe!");
+        System.out.println("\n===== FLUXO COMPLETO TESTADO COM SUCESSO =====");
     }
 }
