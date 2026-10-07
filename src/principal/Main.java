@@ -2,11 +2,10 @@ package principal;
 
 import modelo.*;
 import repositorio.*;
-import servico.ComparadorService;
+import servico.HistoricoPrecoFornecedorService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -35,59 +34,48 @@ public class Main {
         produtoRepo.salvar(parafuso);
         Produto parafusoSalvo = produtoRepo.listarTodos().get(produtoRepo.listarTodos().size() - 1);
 
-        // SolicitacaoCompra
-        List<ItemSolicitacao> itens = new ArrayList<>();
-        itens.add(new ItemSolicitacao(parafusoSalvo, 100));
-        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-10-07", 0, "Alta", itens, "Producao", "Cotado", solicitanteSalvo);
-        int idSolicitacao = solicitacaoRepo.salvar(solicitacao);
-        SolicitacaoCompra solicitacaoSalva = solicitacaoRepo.buscarPorId(idSolicitacao);
-
-        // Fornecedor 1
+        // Fornecedor (CNPJ aleatório pra evitar duplicidade)
+        String cnpjAleatorio = "9" + System.currentTimeMillis() % 100000000000L;
         Endereco endereco1 = new Endereco(0, "Centro", "89800-000", "Chapeco", "", "SC", "Rua A", 100, "Brasil");
         int idEndereco1 = enderecoRepo.salvar(endereco1);
         Endereco enderecoSalvo1 = enderecoRepo.buscarPorId(idEndereco1);
 
-        Contato contatoForn1 = new Contato(0, "Vendedor", "49922223333", "forn1@fornecedor.com", "Fornecedor Um", "4933332222");
+        Contato contatoForn1 = new Contato(0, "Vendedor", "49922223333", "forn1@fornecedor.com", "Fornecedor Historico", "4933332222");
         int idContatoForn1 = contatoRepo.salvar(contatoForn1);
         Contato contatoForn1Salvo = contatoRepo.buscarPorId(idContatoForn1);
 
-        Fornecedor fornecedor1 = new Fornecedor(true, "11111111000111", contatoForn1Salvo, enderecoSalvo1, 0, "Fornecedor Parafusos LTDA");
+        Fornecedor fornecedor1 = new Fornecedor(true, cnpjAleatorio, contatoForn1Salvo, enderecoSalvo1, 0, "Fornecedor Historico LTDA");
         fornecedorRepo.salvar(fornecedor1);
         Fornecedor fornecedor1Salvo = fornecedorRepo.listarTodos().get(fornecedorRepo.listarTodos().size() - 1);
 
-        // Fornecedor 2
-        Endereco endereco2 = new Endereco(0, "Bairro Industrial", "89805-000", "Chapeco", "", "SC", "Rua B", 200, "Brasil");
-        int idEndereco2 = enderecoRepo.salvar(endereco2);
-        Endereco enderecoSalvo2 = enderecoRepo.buscarPorId(idEndereco2);
+        // SolicitacaoCompra (base pra criar as cotações)
+        List<ItemSolicitacao> itens = new ArrayList<>();
+        itens.add(new ItemSolicitacao(parafusoSalvo, 100));
+        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-09-01", 0, "Alta", itens, "Producao", "Cotado", solicitanteSalvo);
+        int idSolicitacao = solicitacaoRepo.salvar(solicitacao);
+        SolicitacaoCompra solicitacaoSalva = solicitacaoRepo.buscarPorId(idSolicitacao);
 
-        Contato contatoForn2 = new Contato(0, "Vendedor", "49933334444", "forn2@fornecedor.com", "Fornecedor Dois", "4933335555");
-        int idContatoForn2 = contatoRepo.salvar(contatoForn2);
-        Contato contatoForn2Salvo = contatoRepo.buscarPorId(idContatoForn2);
+        // COTAÇÃO 1 (mês passado) - preço R$ 0.45
+        List<OrcamentoFornecedor> orcamentos1 = new ArrayList<>();
+        orcamentos1.add(new OrcamentoFornecedor(fornecedor1Salvo, 0, 5, "Cotacao antiga", 0.45, parafusoSalvo));
+        Cotacao cotacao1 = new Cotacao("2026-09-01", "2026-09-05", 0, "Cotacao de setembro", solicitacaoSalva, orcamentos1, "Fechada");
+        cotacaoRepo.salvar(cotacao1);
 
-        Fornecedor fornecedor2 = new Fornecedor(true, "22222222000122", contatoForn2Salvo, enderecoSalvo2, 0, "Ferragens Baratinho LTDA");
-        fornecedorRepo.salvar(fornecedor2);
-        Fornecedor fornecedor2Salvo = fornecedorRepo.listarTodos().get(fornecedorRepo.listarTodos().size() - 1);
+        // COTAÇÃO 2 (hoje) - preço R$ 0.60 (subiu!)
+        List<OrcamentoFornecedor> orcamentos2 = new ArrayList<>();
+        orcamentos2.add(new OrcamentoFornecedor(fornecedor1Salvo, 0, 5, "Cotacao nova", 0.60, parafusoSalvo));
+        Cotacao cotacao2 = new Cotacao("2026-10-07", "2026-10-10", 0, "Cotacao de outubro", solicitacaoSalva, orcamentos2, "Aberta");
+        cotacaoRepo.salvar(cotacao2);
 
-        // Cotação com DOIS orçamentos pro mesmo produto, preços diferentes
-        List<OrcamentoFornecedor> orcamentos = new ArrayList<>();
-        orcamentos.add(new OrcamentoFornecedor(fornecedor1Salvo, 0, 5, "Preco normal", 0.50, parafusoSalvo));
-        orcamentos.add(new OrcamentoFornecedor(fornecedor2Salvo, 0, 7, "Promocao essa semana", 0.38, parafusoSalvo));
+        System.out.println("\n===== TESTANDO O HISTORICO DE PRECOS =====");
+        HistoricoPrecoFornecedorService historicoService = new HistoricoPrecoFornecedorService();
 
-        Cotacao cotacao = new Cotacao("2026-10-07", "2026-10-14", 0, "Cotacao teste comparador", solicitacaoSalva, orcamentos, "Fechada");
-        int idCotacao = cotacaoRepo.salvar(cotacao);
-        Cotacao cotacaoSalva = cotacaoRepo.buscarPorId(idCotacao);
+        // Simula uma cotação nova chegando com preço R$ 0.60
+        String resultado = historicoService.compararComHistorico(parafusoSalvo, fornecedor1Salvo, 0.60);
+        System.out.println(resultado);
 
-        System.out.println("\n===== COMPARANDO PREÇOS =====");
-        ComparadorService comparador = new ComparadorService();
-        Map<Produto, OrcamentoFornecedor> melhores = comparador.encontrarMelhoresPrecos(cotacaoSalva);
-
-        for (Map.Entry<Produto, OrcamentoFornecedor> entrada : melhores.entrySet()) {
-            Produto produto = entrada.getKey();
-            OrcamentoFornecedor melhor = entrada.getValue();
-            System.out.println("Produto: " + produto.getNome());
-            System.out.println("Melhor fornecedor: " + melhor.getFornecedor().getNome());
-            System.out.println("Preço: R$ " + melhor.getPrecoOfertado());
-            System.out.println("Prazo de entrega: " + melhor.getPrazoEntregaDias() + " dias");
-        }
+        // Simula uma cotação nova chegando com preço mais barato: R$ 0.40
+        String resultado2 = historicoService.compararComHistorico(parafusoSalvo, fornecedor1Salvo, 0.40);
+        System.out.println(resultado2);
     }
 }
