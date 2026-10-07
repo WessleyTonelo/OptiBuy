@@ -2,9 +2,11 @@ package principal;
 
 import modelo.*;
 import repositorio.*;
+import servico.ComparadorService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -16,10 +18,8 @@ public class Main {
         FornecedorRepository fornecedorRepo = new FornecedorRepository();
         SolicitacaoCompraRepository solicitacaoRepo = new SolicitacaoCompraRepository();
         CotacaoRepository cotacaoRepo = new CotacaoRepository();
-        PedidoCompraRepository pedidoRepo = new PedidoCompraRepository();
-        RecebimentoRepository recebimentoRepo = new RecebimentoRepository();
 
-        System.out.println("===== PREPARANDO DADOS (fluxo completo) =====");
+        System.out.println("===== PREPARANDO DADOS =====");
 
         // Contato + Solicitante
         Contato contato = new Contato(0, "Comprador", "49911112222", "ana@optibuy.com", "Ana Requisitante", "4933331111");
@@ -36,13 +36,13 @@ public class Main {
         Produto parafusoSalvo = produtoRepo.listarTodos().get(produtoRepo.listarTodos().size() - 1);
 
         // SolicitacaoCompra
-        List<ItemSolicitacao> itensSolicitacao = new ArrayList<>();
-        itensSolicitacao.add(new ItemSolicitacao(parafusoSalvo, 100));
-        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-10-04", 0, "Alta", itensSolicitacao, "Producao", "Cotado", solicitanteSalvo);
+        List<ItemSolicitacao> itens = new ArrayList<>();
+        itens.add(new ItemSolicitacao(parafusoSalvo, 100));
+        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-10-07", 0, "Alta", itens, "Producao", "Cotado", solicitanteSalvo);
         int idSolicitacao = solicitacaoRepo.salvar(solicitacao);
         SolicitacaoCompra solicitacaoSalva = solicitacaoRepo.buscarPorId(idSolicitacao);
 
-        // Endereco + Contato + Fornecedor
+        // Fornecedor 1
         Endereco endereco1 = new Endereco(0, "Centro", "89800-000", "Chapeco", "", "SC", "Rua A", 100, "Brasil");
         int idEndereco1 = enderecoRepo.salvar(endereco1);
         Endereco enderecoSalvo1 = enderecoRepo.buscarPorId(idEndereco1);
@@ -55,48 +55,39 @@ public class Main {
         fornecedorRepo.salvar(fornecedor1);
         Fornecedor fornecedor1Salvo = fornecedorRepo.listarTodos().get(fornecedorRepo.listarTodos().size() - 1);
 
-        // Cotacao
+        // Fornecedor 2
+        Endereco endereco2 = new Endereco(0, "Bairro Industrial", "89805-000", "Chapeco", "", "SC", "Rua B", 200, "Brasil");
+        int idEndereco2 = enderecoRepo.salvar(endereco2);
+        Endereco enderecoSalvo2 = enderecoRepo.buscarPorId(idEndereco2);
+
+        Contato contatoForn2 = new Contato(0, "Vendedor", "49933334444", "forn2@fornecedor.com", "Fornecedor Dois", "4933335555");
+        int idContatoForn2 = contatoRepo.salvar(contatoForn2);
+        Contato contatoForn2Salvo = contatoRepo.buscarPorId(idContatoForn2);
+
+        Fornecedor fornecedor2 = new Fornecedor(true, "22222222000122", contatoForn2Salvo, enderecoSalvo2, 0, "Ferragens Baratinho LTDA");
+        fornecedorRepo.salvar(fornecedor2);
+        Fornecedor fornecedor2Salvo = fornecedorRepo.listarTodos().get(fornecedorRepo.listarTodos().size() - 1);
+
+        // Cotação com DOIS orçamentos pro mesmo produto, preços diferentes
         List<OrcamentoFornecedor> orcamentos = new ArrayList<>();
-        orcamentos.add(new OrcamentoFornecedor(fornecedor1Salvo, 0, 5, "Preco a vista", 0.45, parafusoSalvo));
-        Cotacao cotacao = new Cotacao("2026-10-04", "2026-10-10", 0, "Cotacao urgente", solicitacaoSalva, orcamentos, "Fechada");
+        orcamentos.add(new OrcamentoFornecedor(fornecedor1Salvo, 0, 5, "Preco normal", 0.50, parafusoSalvo));
+        orcamentos.add(new OrcamentoFornecedor(fornecedor2Salvo, 0, 7, "Promocao essa semana", 0.38, parafusoSalvo));
+
+        Cotacao cotacao = new Cotacao("2026-10-07", "2026-10-14", 0, "Cotacao teste comparador", solicitacaoSalva, orcamentos, "Fechada");
         int idCotacao = cotacaoRepo.salvar(cotacao);
         Cotacao cotacaoSalva = cotacaoRepo.buscarPorId(idCotacao);
 
-        // PedidoCompra
-        PedidoCompra pedido = new PedidoCompra(
-                solicitanteSalvo, cotacaoSalva, "", "2026-10-04", "2026-10-15",
-                0, fornecedor1Salvo, 1001, "Pedido urgente", "Enviado", 15.00, 45.00
-        );
-        int idPedido = pedidoRepo.salvar(pedido);
-        PedidoCompra pedidoSalvo = pedidoRepo.buscarPorId(idPedido);
+        System.out.println("\n===== COMPARANDO PREÇOS =====");
+        ComparadorService comparador = new ComparadorService();
+        Map<Produto, OrcamentoFornecedor> melhores = comparador.encontrarMelhoresPrecos(cotacaoSalva);
 
-        System.out.println("\n===== 1. SALVAR RECEBIMENTO =====");
-        List<ItemRecebimento> itensRecebimento = new ArrayList<>();
-        // Entregou 95 de 100 pedidos -> divergência!
-        itensRecebimento.add(new ItemRecebimento(true, 0, "Faltaram 5 unidades na caixa", parafusoSalvo, 95, 100));
-
-        Recebimento recebimento = new Recebimento(
-                "2026-10-13", true, 0, pedidoSalvo, itensRecebimento, "Ana Requisitante", "Parcial"
-        );
-        int idRecebimento = recebimentoRepo.salvar(recebimento);
-
-        System.out.println("\n===== 2. BUSCAR POR ID =====");
-        Recebimento encontrado = recebimentoRepo.buscarPorId(idRecebimento);
-        System.out.println("Pedido relacionado: " + encontrado.getPedidoCompra().getNumeroPedido());
-        System.out.println("Divergência geral: " + encontrado.isDivergenciaEncontrada());
-        System.out.println("Itens recebidos:");
-        for (ItemRecebimento item : encontrado.getItensrecebidos()) {
-            System.out.println(" - " + item.getProduto().getNome() + " | Esperado: " + item.getQuantidadeEsperada() + " | Entregue: " + item.getQuantidadeEntregue() + " | Divergência: " + item.isDivergencia() + " | Obs: " + item.getObs());
+        for (Map.Entry<Produto, OrcamentoFornecedor> entrada : melhores.entrySet()) {
+            Produto produto = entrada.getKey();
+            OrcamentoFornecedor melhor = entrada.getValue();
+            System.out.println("Produto: " + produto.getNome());
+            System.out.println("Melhor fornecedor: " + melhor.getFornecedor().getNome());
+            System.out.println("Preço: R$ " + melhor.getPrecoOfertado());
+            System.out.println("Prazo de entrega: " + melhor.getPrazoEntregaDias() + " dias");
         }
-
-        System.out.println("\n===== 3. LISTAR TODOS =====");
-        System.out.println("Total de recebimentos no banco: " + recebimentoRepo.listarTodos().size());
-
-        System.out.println("\n===== 4. DELETAR =====");
-        recebimentoRepo.deletar(idRecebimento);
-        Recebimento deveSerNulo = recebimentoRepo.buscarPorId(idRecebimento);
-        System.out.println(deveSerNulo == null ? "Confirmado: recebimento removido." : "ERRO: ainda existe!");
-
-        System.out.println("\n===== FLUXO COMPLETO TESTADO COM SUCESSO =====");
     }
 }
