@@ -11,7 +11,7 @@ public class ProdutoRepository {
 
     // CREATE - Salva um novo produto no banco
     public void salvar(Produto produto) {
-        String sql = "INSERT INTO produto (nome, descricao, categoria, quantidade, ativo, preco) VALUES (?,?,?,?,?,?) ";
+        String sql = "INSERT INTO produto (nome, descricao, categoria, quantidade, ativo, preco) VALUES (?,?,?,?,?,?)";
 
         try (Connection con = ConexaoDB.conectar();
              PreparedStatement stmt = con.prepareStatement(sql)) {
@@ -22,7 +22,6 @@ public class ProdutoRepository {
             stmt.setInt(4, produto.getQuantidade());
             stmt.setBoolean(5, produto.isAtivo());
             stmt.setDouble(6, produto.getPreco());
-
 
             stmt.executeUpdate();
             System.out.println("Produto salvo com sucesso!");
@@ -43,13 +42,13 @@ public class ProdutoRepository {
 
             while (rs.next()) {
                 Produto produto = new Produto(
-                rs.getBoolean("ativo"),
-                rs.getString("categoria"),
-                rs.getString("descricao"),
-                rs.getInt("id"),
-                rs.getString("nome"),
-                rs.getDouble("preco"),
-                rs.getInt("quantidade")
+                        rs.getBoolean("ativo"),
+                        rs.getString("categoria"),
+                        rs.getString("descricao"),
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getDouble("preco"),
+                        rs.getInt("quantidade")
                 );
                 produtos.add(produto);
             }
@@ -69,10 +68,9 @@ public class ProdutoRepository {
         try (Connection con = ConexaoDB.conectar();
              PreparedStatement stmt = con.prepareStatement(sql)) {
 
-            stmt.setInt(1 , id);
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
-            // TODO: use if (rs.next()) para montar o objeto, igual fizemos no Contato
             if (rs.next()) {
                 produto = new Produto(
                         rs.getBoolean("ativo"),
@@ -84,6 +82,7 @@ public class ProdutoRepository {
                         rs.getInt("quantidade")
                 );
             }
+
         } catch (SQLException e) {
             System.out.println("Erro ao buscar produto: " + e.getMessage());
         }
@@ -93,7 +92,7 @@ public class ProdutoRepository {
 
     // UPDATE - Atualiza um produto existente
     public void atualizar(Produto produto, int id) {
-        String sql = "UPDATE produto SET nome = ?, descricao = ?, categoria = ?, quantidade = ?, ativo = ?, preco = ?   WHERE id = ?";
+        String sql = "UPDATE produto SET nome = ?, descricao = ?, categoria = ?, quantidade = ?, ativo = ?, preco = ? WHERE id = ?";
 
         try (Connection con = ConexaoDB.conectar();
              PreparedStatement stmt = con.prepareStatement(sql)) {
@@ -128,6 +127,22 @@ public class ProdutoRepository {
 
         } catch (SQLException e) {
             System.out.println("Erro ao deletar produto: " + e.getMessage());
+        }
+    }
+
+    // NOVO - Soma uma quantidade ao estoque atual do produto (usado quando uma entrega é recebida)
+    public void adicionarEstoque(int idProduto, int quantidade) {
+        String sql = "UPDATE produto SET quantidade = quantidade + ? WHERE id = ?";
+
+        try (Connection con = ConexaoDB.conectar();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+
+            stmt.setInt(1, quantidade);
+            stmt.setInt(2, idProduto);
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao atualizar estoque: " + e.getMessage());
         }
     }
 }

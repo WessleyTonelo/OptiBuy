@@ -2,8 +2,10 @@ package principal;
 
 import modelo.*;
 import repositorio.*;
-import servico.DescontoVolumeService;
+import servico.AlertaRecompraService;
+import servico.EstoqueService;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,55 +32,71 @@ public class Main {
         solicitanteRepo.salvar(solicitante);
         Solicitante solicitanteSalvo = solicitanteRepo.listarTodos().get(solicitanteRepo.listarTodos().size() - 1);
 
-        // Produto novo (nome único)
-        String nomeProduto = "Parafuso Teste " + System.currentTimeMillis();
-        Produto parafuso = new Produto(true, "Ferragens", "Parafuso para teste de desconto", 0, nomeProduto, 10.00, 0);
-        produtoRepo.salvar(parafuso);
-        Produto parafusoSalvo = produtoRepo.listarTodos().get(produtoRepo.listarTodos().size() - 1);
+        // Produto novo (nome único) com estoque ZERO
+        String nomeProduto = "Fita Isolante Teste " + System.currentTimeMillis();
+        Produto fita = new Produto(true, "Materiais", "Fita para teste de recompra", 0, nomeProduto, 8.00, 0);
+        produtoRepo.salvar(fita);
+        Produto fitaSalva = produtoRepo.listarTodos().get(produtoRepo.listarTodos().size() - 1);
 
         // Fornecedor (CNPJ aleatório)
-        String cnpjAleatorio = "6" + (System.currentTimeMillis() % 100000000000L);
-        Endereco endereco = new Endereco(0, "Centro", "89800-000", "Chapeco", "", "SC", "Rua E", 80, "Brasil");
+        String cnpjAleatorio = "5" + (System.currentTimeMillis() % 100000000000L);
+        Endereco endereco = new Endereco(0, "Centro", "89800-000", "Chapeco", "", "SC", "Rua F", 90, "Brasil");
         int idEndereco = enderecoRepo.salvar(endereco);
         Endereco enderecoSalvo = enderecoRepo.buscarPorId(idEndereco);
 
-        Contato contatoForn = new Contato(0, "Vendedor", "49966667777", "desconto@fornecedor.com", "Ferragens Desconto Contato", "4933338888");
+        Contato contatoForn = new Contato(0, "Vendedor", "49977778888", "estoque@fornecedor.com", "Materiais Estoque Contato", "4933339999");
         int idContatoForn = contatoRepo.salvar(contatoForn);
         Contato contatoFornSalvo = contatoRepo.buscarPorId(idContatoForn);
 
-        Fornecedor fornecedor = new Fornecedor(true, cnpjAleatorio, contatoFornSalvo, enderecoSalvo, 0, "Ferragens Desconto LTDA");
+        Fornecedor fornecedor = new Fornecedor(true, cnpjAleatorio, contatoFornSalvo, enderecoSalvo, 0, "Materiais Estoque LTDA");
         fornecedorRepo.salvar(fornecedor);
         Fornecedor fornecedorSalvo = fornecedorRepo.listarTodos().get(fornecedorRepo.listarTodos().size() - 1);
 
-        // COMPRA ANTERIOR: 5 unidades a R$ 10,00
+        // Datas calculadas a partir de HOJE (formato 2026-10-07)
+        String tresDiasAtras = LocalDate.now().minusDays(3).toString();
+        String hoje = LocalDate.now().toString();
+
+        // PEDIDO DE 3 DIAS ATRÁS: 100 unidades
         List<ItemSolicitacao> itens = new ArrayList<>();
-        itens.add(new ItemSolicitacao(parafusoSalvo, 5));
-        SolicitacaoCompra solicitacao = new SolicitacaoCompra("2026-09-01", 0, "Media", itens, "Producao", "Cotado", solicitanteSalvo);
+        itens.add(new ItemSolicitacao(fitaSalva, 100));
+        SolicitacaoCompra solicitacao = new SolicitacaoCompra(tresDiasAtras, 0, "Media", itens, "Producao", "Cotado", solicitanteSalvo);
         int idSolicitacao = solicitacaoRepo.salvar(solicitacao);
         SolicitacaoCompra solicitacaoSalva = solicitacaoRepo.buscarPorId(idSolicitacao);
 
         List<OrcamentoFornecedor> orcamentos = new ArrayList<>();
-        orcamentos.add(new OrcamentoFornecedor(fornecedorSalvo, 0, 5, "Compra anterior", 10.00, parafusoSalvo));
-        Cotacao cotacao = new Cotacao("2026-09-01", "2026-09-05", 0, "Cotacao anterior", solicitacaoSalva, orcamentos, "Fechada");
+        orcamentos.add(new OrcamentoFornecedor(fornecedorSalvo, 0, 5, "Cotacao teste", 8.00, fitaSalva));
+        Cotacao cotacao = new Cotacao(tresDiasAtras, hoje, 0, "Cotacao recompra", solicitacaoSalva, orcamentos, "Fechada");
         int idCotacao = cotacaoRepo.salvar(cotacao);
         Cotacao cotacaoSalva = cotacaoRepo.buscarPorId(idCotacao);
 
         PedidoCompra pedido = new PedidoCompra(
-                solicitanteSalvo, cotacaoSalva, "2026-09-10", "2026-09-05", "2026-09-10",
-                0, fornecedorSalvo, 4001, "Compra anterior", "Entregue", 0.00, 50.00
+                solicitanteSalvo, cotacaoSalva, "", tresDiasAtras, hoje,
+                0, fornecedorSalvo, 5001, "Pedido para teste de recompra", "Enviado", 0.00, 800.00
         );
-        pedidoRepo.salvar(pedido);
+        int idPedido = pedidoRepo.salvar(pedido);
+        PedidoCompra pedidoSalvo = pedidoRepo.buscarPorId(idPedido);
 
-        System.out.println("\n===== ANALISANDO UMA COMPRA DE 100 UNIDADES (desconto esperado: 15%) =====");
-        DescontoVolumeService descontoService = new DescontoVolumeService();
+        AlertaRecompraService alerta = new AlertaRecompraService();
+        EstoqueService estoque = new EstoqueService();
 
-        System.out.println("\n--- Cenário 1: preço cotado R$ 8,00 ---");
-        System.out.println(descontoService.analisarCompra(parafusoSalvo, 100, 8.00, 15));
+        System.out.println("\n===== 1. ALERTA DE RECOMPRA (pedido feito há 3 dias) =====");
+        System.out.println("--- Janela de 7 dias (semana) ---");
+        System.out.println(alerta.verificarRecompra(fitaSalva, 7));
+        System.out.println("--- Janela de 1 dia ---");
+        System.out.println(alerta.verificarRecompra(fitaSalva, 1));
 
-        System.out.println("\n--- Cenário 2: preço cotado R$ 9,50 ---");
-        System.out.println(descontoService.analisarCompra(parafusoSalvo, 100, 9.50, 15));
+        System.out.println("\n===== 2. RECEBIMENTO ATUALIZANDO O ESTOQUE =====");
+        System.out.println("Estoque ANTES do recebimento: " + estoque.consultarEstoque(fitaSalva));
 
-        System.out.println("\n--- Cenário 3: preço cotado R$ 10,50 ---");
-        System.out.println(descontoService.analisarCompra(parafusoSalvo, 100, 10.50, 15));
+        // Chegaram 95 de 100 -> divergência
+        List<ItemRecebimento> itensRecebidos = new ArrayList<>();
+        itensRecebidos.add(new ItemRecebimento(true, 0, "Faltaram 5 unidades", fitaSalva, 95, 100));
+        Recebimento recebimento = new Recebimento(hoje, true, 0, pedidoSalvo, itensRecebidos, "Ana Requisitante", "Parcial");
+        estoque.registrarRecebimento(recebimento);
+
+        System.out.println("Estoque DEPOIS do recebimento: " + estoque.consultarEstoque(fitaSalva));
+
+        System.out.println("\n===== 3. ALERTA DE NOVO (agora com estoque) =====");
+        System.out.println(alerta.verificarRecompra(fitaSalva, 7));
     }
 }
