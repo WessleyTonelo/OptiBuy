@@ -28,7 +28,7 @@ public class ConexaoDB {
     public static Connection conectar() {
         try {
             Connection conexao = DriverManager.getConnection(url, usuario, senha);
-            System.out.println("Conectado ao banco optibuy com sucesso!");
+            //System.out.println("Conectado ao banco optibuy com sucesso!");
             return conexao;
         } catch (SQLException e) {
             System.out.println("Erro ao conectar ao banco: " + e.getMessage());
