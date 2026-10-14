@@ -15,12 +15,14 @@ public class MenuCadastros {
         while (opcao != 0) {
             System.out.println("\n------ CADASTROS ------");
             System.out.println("1 - Produtos");
+            System.out.println("2 - Fornecedores");
             System.out.println("0 - Voltar");
             System.out.println("-----------------------");
             opcao = Entrada.lerInteiro("Escolha uma opção: ");
 
             switch (opcao) {
                 case 1 -> menuProdutos();
+                case 2 -> new MenuFornecedores().exibir();
                 case 0 -> { }
                 default -> System.out.println("\nOpção inválida.");
             }
@@ -121,7 +123,7 @@ public class MenuCadastros {
     }
 
     private void exibirProduto(Produto p) {
-        System.out.printf("[%d] %s | %s | R$ %.2f | Estoque: %d | %s%n",
+        System.out.printf("[%d] %s | %s | R$ %,.2f | Estoque: %d | %s%n",
                 p.getId(), p.getNome(), p.getCategoria(), p.getPreco(),
                 p.getQuantidade(), p.isAtivo() ? "Ativo" : "Inativo");
     }

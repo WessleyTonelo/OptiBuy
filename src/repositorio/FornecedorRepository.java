@@ -113,6 +113,23 @@ public class FornecedorRepository {
         }
     }
 
+    // NOVO - Confere se já existe um fornecedor com esse CNPJ (usado antes de cadastrar)
+    public boolean existeCnpj(String cnpj) {
+        String sql = "SELECT 1 FROM fornecedor WHERE cnpj = ?";
+
+        try (Connection con = ConexaoDB.conectar();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+
+            stmt.setString(1, cnpj);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao verificar CNPJ: " + e.getMessage());
+            return false;
+        }
+    }
+
     // Método auxiliar - monta um objeto Fornecedor a partir de uma linha do ResultSet
     private Fornecedor montarFornecedor(ResultSet rs) throws SQLException {
         EnderecoRepository enderecoRepo = new EnderecoRepository();
